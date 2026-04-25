@@ -1,0 +1,353 @@
+{
+  "name": "Student Registration & Validation System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-registration",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f9b17a34-67f3-4b35-a7be-f7d4d2d96e39",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        192
+      ],
+      "webhookId": "fbd1c03c-f076-4cdb-98e9-3378b5ea3bd4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.body.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "rightValue": "@"
+            },
+            {
+              "id": "2",
+              "leftValue": "={{ $json.body.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "rightValue": "."
+            },
+            {
+              "id": "3",
+              "leftValue": "={{ $json.body.phone.toString().length }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 10
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "26dcd7c0-bc22-4f36-bdc5-8cbe5451d12a",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        464,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "ae58545d-77c5-4d96-bb1e-c5b3299361dc",
+      "name": "Check Duplicate",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        688,
+        96
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "={{ $(\"Webhook Trigger\").item.json.body.email }}"
+            },
+            {
+              "id": "2",
+              "leftValue": "={{ $json.phone }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "={{ $(\"Webhook Trigger\").item.json.body.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6bbfcd21-7847-4701-b382-6d0a75e7465c",
+      "name": "Check If Duplicate Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"message\": \"User already registered\" } }}",
+        "options": {}
+      },
+      "id": "08783096-b308-430a-bf36-92e557f822bd",
+      "name": "Duplicate Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1136,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "name",
+              "value": "={{ $(\"Webhook Trigger\").item.json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "email",
+              "value": "={{ $(\"Webhook Trigger\").item.json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "phone",
+              "value": "={{ $(\"Webhook Trigger\").item.json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "RegID",
+              "value": "={{ \"REG-\" + $now.toMillis() }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "status",
+              "value": "Registered",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3cbf849-bd34-4188-a86c-be2d8c642b4d",
+      "name": "Generate RegID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "5f39f6b2-9568-463c-8697-9fc3d62f78c0",
+      "name": "Save to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"message\": \"Registration successful\", \"RegID\": $json.RegID } }}",
+        "options": {}
+      },
+      "id": "8d65fbc7-4350-41b2-aec1-3c2988e88ae2",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1584,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"message\": \"Invalid input data\" } }}",
+        "options": {}
+      },
+      "id": "06af1c91-1ad1-48a0-a596-ea6533feec7b",
+      "name": "Invalid Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        688,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Check If Duplicate Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Duplicate Exists": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate RegID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate RegID": {
+      "main": [
+        [
+          {
+            "node": "Save to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "88e2412f-157e-4614-95ac-353bb5e5288c",
+  "meta": {
+    "instanceId": "dd194511529ac25adc5f2e05b382fdedbe56167b68582b9927c4dcc00fc0e5df"
+  },
+  "id": "JnDfEvYyjOwJjwkq",
+  "tags": []
+}

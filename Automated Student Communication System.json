@@ -1,0 +1,250 @@
+{
+  "name": "Automated Student Communication System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-registration",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dd058847-d8f9-42b9-94d8-f6c8e0a4de72",
+      "name": "Trigger Communication",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "203bc960-c67a-48b9-9bcd-71170bd63884"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.email }}",
+        "subject": "Registration Successful",
+        "message": "=<h2>Welcome {{ $json.body.name }}!</h2>\n<p>Your registration has been successfully completed.</p>\n<p><strong>Registration ID:</strong> {{ $json.body.RegID }}</p>\n<p>Thank you for registering with us. We look forward to serving you.</p>\n<p>Best regards,<br>The Team</p>",
+        "options": {}
+      },
+      "id": "a358b267-10fc-4b7d-8f88-bd0cb4b0a459",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        304
+      ],
+      "webhookId": "a167d695-52a2-42f4-ab3f-d09a19e334a1",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "id": "5a99ac60-47bf-4d29-9240-9bf09db35b93",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        688,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Your Twilio phone number (e.g., +1234567890)__>",
+        "to": "={{ $json.body.phone }}",
+        "message": "=Hello {{ $json.body.name }}! Your registration is confirmed. Registration ID: {{ $json.body.RegID }}. Thank you!",
+        "options": {}
+      },
+      "id": "c090aebe-c388-42ca-ab19-c6a593dd755e",
+      "name": "Send SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        464,
+        496
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "name",
+              "value": "={{ $(\"Trigger Communication\").item.json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "email",
+              "value": "={{ $(\"Trigger Communication\").item.json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "phone",
+              "value": "={{ $(\"Trigger Communication\").item.json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "RegID",
+              "value": "={{ $(\"Trigger Communication\").item.json.body.RegID }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "email_status",
+              "value": "={{ $(\"Send Email\").item.json.id ? \"sent\" : \"failed\" }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "sms_status",
+              "value": "={{ $(\"Send SMS\").item.json.sid ? \"sent\" : \"failed\" }}",
+              "type": "string"
+            },
+            {
+              "id": "7",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90d79331-5c0e-47c3-828e-dac3f1f64a37",
+      "name": "Set Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "56dad2dd-c552-4d95-bba9-0c40e69a98bc",
+      "name": "Save Logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"message\": \"Communication processed\", \"status\": \"completed\" } }}",
+        "options": {}
+      },
+      "id": "f3ea3552-75f4-4a3c-a221-6744396f57a1",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1360,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger Communication": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Set Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set Status": {
+      "main": [
+        [
+          {
+            "node": "Save Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Logs": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5aa73710-da8b-4b63-bd1d-c95e17792ff4",
+  "meta": {
+    "instanceId": "dd194511529ac25adc5f2e05b382fdedbe56167b68582b9927c4dcc00fc0e5df"
+  },
+  "id": "WpM18KIS7QHHP2aw",
+  "tags": []
+}

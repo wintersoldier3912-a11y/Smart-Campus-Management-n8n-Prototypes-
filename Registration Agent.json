@@ -1,0 +1,389 @@
+{
+  "name": "Registration Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-registration",
+        "options": {}
+      },
+      "id": "76d34b7d-1e63-4651-92b7-c86c0c0e6cfe",
+      "name": "Registration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        320
+      ],
+      "webhookId": "e2c05f96-38bc-45a1-adfd-cdc21050c53b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate email format and phone length\nconst item = $input.first().json;\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst phoneRegex = /^\\+?[0-9]{10,15}$/;\n\nconst isValidEmail = emailRegex.test(item.body.email);\nconst isValidPhone = phoneRegex.test(item.body.phone);\n\nreturn [{\n  json: {\n    name: item.body.name,\n    email: item.body.email,\n    phone: item.body.phone,\n    isValid: isValidEmail && isValidPhone,\n    validationErrors: {\n      email: !isValidEmail ? 'Invalid email format' : null,\n      phone: !isValidPhone ? 'Phone must be 10-15 digits' : null\n    }\n  }\n}];"
+      },
+      "id": "115986bf-0edd-4e12-8b70-ec7c7318d9bb",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3039f66a-ebd1-4585-b668-051a6042c8fd",
+      "name": "Check Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "adf55415-f193-4473-8c0b-5090e3723f80",
+      "name": "Check Duplicates",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        224
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb8e4dd5-7769-464e-b925-00383c95f1f9",
+      "name": "Check If Duplicate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1136,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "RegID",
+              "value": "={{ \"REG-\" + $now.toFormat(\"yyyyMMdd\") + \"-\" + Math.random().toString(36).substring(2, 8).toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "name",
+              "value": "={{ $(\"Validate Input\").item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "email",
+              "value": "={{ $(\"Validate Input\").item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "phone",
+              "value": "={{ $(\"Validate Input\").item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "status",
+              "value": "registered",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1412d5d5-b175-4d36-afa6-36e8a5b49519",
+      "name": "Generate RegID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "ccfb21ac-6094-4ad7-8591-62d3f6bd4de1",
+      "name": "Store Registration",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1584,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "<__PLACEHOLDER_VALUE__Select Communication Agent workflow__>",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "RegID": "={{ $json.RegID }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "f5f85c7c-ff6b-4e62-a2a6-c4a86e43e3d2",
+      "name": "Trigger Communication Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1808,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "message",
+              "value": "Email already registered",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6b9283fb-0f03-4d0c-a660-7b39872e227a",
+      "name": "Duplicate Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "message",
+              "value": "Validation failed",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "errors",
+              "value": "={{ $json.validationErrors }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "022e528d-7641-4d4c-acdb-cbce071d9431",
+      "name": "Validation Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        416
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Registration Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validation Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Check If Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Generate RegID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Duplicate Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate RegID": {
+      "main": [
+        [
+          {
+            "node": "Store Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Registration": {
+      "main": [
+        [
+          {
+            "node": "Trigger Communication Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e438ddac-71e8-4ddf-a951-47dc9044356a",
+  "meta": {
+    "instanceId": "dd194511529ac25adc5f2e05b382fdedbe56167b68582b9927c4dcc00fc0e5df"
+  },
+  "id": "WbZi7J30Xjyhft5l",
+  "tags": []
+}
